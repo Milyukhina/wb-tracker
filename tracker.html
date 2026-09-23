@@ -24,18 +24,13 @@
     .status.online .dot { background: #5DE28A; box-shadow: 0 0 8px #5DE28A; }
     .status.offline .dot { background: #FFB1B1; }
     .content { padding: 28px 32px 0; }
-    .line-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 22px; }
-    .line-btn { border: 2px solid #E4DDF7; background: #F8F6FF; border-radius: 20px;
-        padding: 16px 20px; cursor: pointer; display: flex; align-items: center; gap: 14px;
-        font-family: inherit; text-align: left; }
-    .line-btn.active { border-color: #7C4DFF; background: #F3EEFF;
-        box-shadow: 0 10px 24px -12px rgba(124,77,255,0.5); }
-    .line-btn .num { width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0;
-        background: #E4DDF7; color: #6D3FE0; font-weight: 700; font-size: 1.3rem;
-        display: flex; align-items: center; justify-content: center; }
-    .line-btn.active .num { background: #7C4DFF; color: #fff; }
-    .line-btn .line-title { font-weight: 700; color: #2E1A6B; font-size: 1rem; }
-    .line-btn .line-desc { font-size: 0.8rem; color: #7A6BAF; line-height: 1.35; }
+    .line-info-bar { background: #F8F6FF; border: 1px solid #E4DDF7; border-radius: 20px;
+        padding: 16px 20px; margin-bottom: 22px; display: flex; align-items: center; gap: 14px; }
+    .line-info-bar .icon { width: 48px; height: 48px; border-radius: 14px;
+        background: #7C4DFF; color: #fff; font-weight: 700; font-size: 1.3rem;
+        display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .line-info-bar .title { font-weight: 700; color: #2E1A6B; font-size: 1rem; }
+    .line-info-bar .desc { font-size: 0.8rem; color: #7A6BAF; margin-top: 2px; }
     .operator-bar { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 14px;
         background: #F8F6FF; border-radius: 20px; padding: 16px 18px;
         border: 1px solid #E4DDF7; margin-bottom: 22px; }
@@ -110,24 +105,20 @@
         <h2>WB Travel</h2>
         <div class="dept">
             Департамент клиентского опыта и сервиса
-            <span class="pill" id="linePill">1 линия</span>
+            <span class="pill" id="linePill">— линия</span>
             <span class="status" id="cloudStatus">
                 <span class="dot"></span><span id="cloudStatusText">проверка...</span>
             </span>
         </div>
     </div>
     <div class="content">
-        <div class="line-selector">
-            <button class="line-btn active" data-line="1" id="lineBtn1">
-                <div class="num">1</div>
-                <div><div class="line-title">Первая линия</div>
-                <div class="line-desc">Входящие звонки, чаты, запросы, письма</div></div>
-            </button>
-            <button class="line-btn" data-line="2" id="lineBtn2">
-                <div class="num">2</div>
-                <div><div class="line-title">Вторая линия</div>
-                <div class="line-desc">Исходящие звонки, чаты, помощь 1Л, письма</div></div>
-            </button>
+
+        <div class="line-info-bar">
+            <div class="icon" id="autoLineIcon">?</div>
+            <div>
+                <div class="title" id="autoLineTitle">Линия не определена</div>
+                <div class="desc" id="autoLineDesc">Выберите оператора, чтобы определить линию</div>
+            </div>
         </div>
 
         <div class="operator-bar">
@@ -175,7 +166,7 @@
             🎯 Активности
             <span style="background:#E4DDF7; color:#6D3FE0; padding:3px 12px;
                 border-radius:40px; font-size:0.72rem; text-transform:uppercase;"
-                id="lineChip">1 линия</span>
+                id="lineChip">—</span>
         </div>
         <div class="activity-grid" id="activityGrid"></div>
 
@@ -190,7 +181,7 @@
         <div style="font-weight:700; color:#2E1A6B; margin-bottom:12px;">🧾 Журнал событий</div>
         <div class="log-list" id="logList">
             <div style="text-align:center; color:#B9A3F0; padding:18px; font-style:italic;">
-                Нажмите «Старт смены».</div>
+                Выберите оператора и нажмите «Старт смены».</div>
         </div>
     </div>
 </div>
@@ -198,24 +189,25 @@
 <script>
 (function(){
     // ⚠️ ВСТАВЬ СЮДА СВОЙ URL (заканчивается на /exec)
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx6VehI2TOkz9O_M2zObj0gGm5KUtB6lC3ibY3pJDhYwBb3dHvlpy2YeM77qGUD2RkXTQ/exec';
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyp3spFRStjY0M9O5ItrVtYyKPH5GdnuVrWdTYJVudDDni7o-edWMG7M-HFu-7zvJMBeQ/exec';
 
     const LINE_CONFIG = {
         1: { label: '1 линия', activities: [
-            { key: 'in_calls', channel: 'Звонки', label: 'Входящие звонки', color: '#7C4DFF' },
-            { key: 'in_chats', channel: 'Чаты', label: 'Чаты', color: '#9B6BFF' },
-            { key: 'in_queries', channel: 'Запросы', label: 'Запросы в чатах', color: '#B58CFF' },
-            { key: 'in_emails', channel: 'Письма', label: 'Входящие письма', color: '#C9A8FF' },
-            { key: 'in_problems', channel: 'Проблемы', label: 'Создание проблем', color: '#6D3FE0' }
+            { key: 'in_calls',    channel: 'Звонки',   label: 'Входящие звонки',   color: '#7C4DFF' },
+            { key: 'out_calls',   channel: 'Звонки',   label: 'Исходящие звонки',  color: '#6D3FE0' },
+            { key: 'in_chats',    channel: 'Чаты',     label: 'Чаты',              color: '#9B6BFF' },
+            { key: 'in_queries',  channel: 'Запросы',  label: 'Запросы в чатах',   color: '#B58CFF' },
+            { key: 'in_emails',   channel: 'Письма',   label: 'Входящие письма',   color: '#C9A8FF' },
+            { key: 'in_problems', channel: 'Проблемы', label: 'Создание проблем',  color: '#8B5CF6' }
         ]},
         2: { label: '2 линия', activities: [
-            { key: 'out_calls', channel: 'Звонки', label: 'Исходящие звонки', color: '#7C4DFF' },
-            { key: 'chats', channel: 'Чаты', label: 'Чаты', color: '#9B6BFF' },
-            { key: 'out_queries', channel: 'Запросы', label: 'Запросы в чатах', color: '#B58CFF' },
-            { key: 'help_common', channel: 'Помощь 1Л', label: 'Помощь 1Л в общем чате', color: '#C9A8FF' },
-            { key: 'help_pm', channel: 'Помощь 1Л', label: 'Помощь 1Л в ЛС', color: '#A87BFF' },
-            { key: 'out_emails', channel: 'Письма', label: 'Исходящие письма', color: '#8B5CF6' },
-            { key: 'solve_problems', channel: 'Проблемы', label: 'Отработка проблем', color: '#6D3FE0' }
+            { key: 'calls',          channel: 'Звонки',    label: 'Звонки',                  color: '#7C4DFF' },
+            { key: 'chats',          channel: 'Чаты',      label: 'Чаты',                    color: '#9B6BFF' },
+            { key: 'out_queries',    channel: 'Запросы',   label: 'Запросы в чатах',         color: '#B58CFF' },
+            { key: 'help_common',    channel: 'Помощь 1Л', label: 'Помощь 1Л в общем чате',  color: '#C9A8FF' },
+            { key: 'help_pm',        channel: 'Помощь 1Л', label: 'Помощь 1Л в ЛС',          color: '#A87BFF' },
+            { key: 'emails',         channel: 'Почта',     label: 'Почта',                   color: '#8B5CF6' },
+            { key: 'solve_problems', channel: 'Проблемы',  label: 'Отработка проблем',       color: '#6D3FE0' }
         ]}
     };
 
@@ -276,24 +268,35 @@
         const opt = this.selectedOptions[0];
         if (!opt || !opt.value) {
             $('lineInfo').value = ''; $('shiftInfo').value = ''; $('supervisorInfo').value = '';
+            $('autoLineTitle').textContent = 'Линия не определена';
+            $('autoLineDesc').textContent = 'Выберите оператора, чтобы определить линию';
+            $('autoLineIcon').textContent = '?';
+            $('lineChip').textContent = '—';
+            $('linePill').textContent = '— линия';
             return;
         }
-        $('lineInfo').value = opt.dataset.line || '';
-        $('shiftInfo').value = opt.dataset.shift || '';
-        $('supervisorInfo').value = opt.dataset.supervisor || '';
-    });
 
-    function setLine(l) {
-        if (state.shiftActive) return;
-        state.line = l;
-        $('lineBtn1').classList.toggle('active', l === 1);
-        $('lineBtn2').classList.toggle('active', l === 2);
-        $('linePill').textContent = l + ' линия';
-        $('lineChip').textContent = l + ' линия';
-        buildCards(); resetCounts();
-    }
-    $('lineBtn1').addEventListener('click', () => setLine(1));
-    $('lineBtn2').addEventListener('click', () => setLine(2));
+        const empLine = String(opt.dataset.line || '1').trim();
+        const empShift = opt.dataset.shift || '';
+        const empSupervisor = opt.dataset.supervisor || '';
+
+        $('lineInfo').value = empLine;
+        $('shiftInfo').value = empShift;
+        $('supervisorInfo').value = empSupervisor;
+
+        // Автоустановка линии
+        state.line = empLine === '2' ? 2 : 1;
+        $('autoLineIcon').textContent = state.line;
+        $('autoLineTitle').textContent = state.line + ' линия';
+        $('autoLineDesc').textContent = state.line === 1
+            ? 'Входящие/исходящие звонки, чаты, запросы, письма, создание проблем'
+            : 'Звонки, чаты, запросы, помощь 1Л, почта, отработка проблем';
+        $('lineChip').textContent = state.line + ' линия';
+        $('linePill').textContent = state.line + ' линия';
+
+        buildCards();
+        resetCounts();
+    });
 
     function resetCounts() {
         state.counts = {}; state.cancelled = {};
@@ -319,7 +322,8 @@
                         <button class="btn-plus" data-key="${a.key}" style="background:${a.color}" disabled>+</button>
                     </div>
                 </div>
-                <div style="font-size:0.75rem; color:#8A7BBF; margin-top:6px; margin-left:10px;" id="last-${a.key}">—</div>
+                <div style="font-size:0.75rem; color:#8A7BBF; margin-top:6px; margin-left:10px;"
+                    id="last-${a.key}">—</div>
             `;
             grid.appendChild(c);
         });
@@ -406,7 +410,6 @@
         resetCounts(); buildCards();
         $('startBtn').disabled = true; $('endBtn').disabled = false;
         $('operatorSelect').disabled = true;
-        $('lineBtn1').disabled = true; $('lineBtn2').disabled = true;
         $('addBreakBtn').disabled = false; $('breakMinutes').disabled = false;
         $('commentInput').disabled = false; $('addCommentBtn').disabled = false;
         $('shiftStateLabel').textContent = 'активна';
@@ -427,7 +430,6 @@
         $('commentInput').disabled = true; $('addCommentBtn').disabled = true;
         $('startBtn').disabled = false; $('endBtn').disabled = true;
         $('operatorSelect').disabled = false;
-        $('lineBtn1').disabled = false; $('lineBtn2').disabled = false;
         $('shiftStateLabel').textContent = 'завершена';
         send({ activity: 'Завершение смены', type: 'shift_end' });
     });
@@ -468,7 +470,6 @@
         });
     }
 
-    setLine(1);
     loadEmployees();
 })();
 </script>
